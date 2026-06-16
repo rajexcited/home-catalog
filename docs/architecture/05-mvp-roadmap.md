@@ -1,12 +1,15 @@
 # MVP Roadmap and Build Plan
 
 ## 1) Suggested Stack (Final)
-- Client: Next.js + TypeScript + Tailwind (responsive PWA).
+- Client: Next.js + TypeScript + Tailwind (mobile-first PWA) deployed on Vercel.
 - Backend: Supabase Postgres + Auth + Storage + RLS.
 - Optional helper backend: Supabase Edge Functions for advanced logic.
 
+MVP device target:
+- Pixel 9 Pro, iPhone 14 Pro, iPhone 15 Pro.
+
 Reason this is best now:
-- One codebase for desktop and mobile web.
+- One codebase for installable mobile web first, with desktop support later.
 - Lowest operational burden.
 - Near-free for family-scale usage.
 
@@ -14,11 +17,12 @@ Reason this is best now:
 - Invite-only sign-in.
 - Create/update/delete containers and items (soft delete).
 - Parent-child container tree.
-- Item metadata with cost, quantity, serial number, priority.
+- Item metadata with cost, quantity, serial number, priority, category/subcategory, purchase date, and warranty expiry.
 - Photo upload and attach to items.
-- Share container with users (default role: editor).
+- Share container with users (default role: editor, plus manager role).
 - Search within selected container subtree.
 - Audit timeline for create/update/remove/share actions.
+- Materialized path (`path`) support for fast subtree queries.
 
 ## 3) Post-MVP (Phase 2)
 - Offline support for read + queued writes.
@@ -29,8 +33,9 @@ Reason this is best now:
 ## 4) Delivery Plan
 
 ### Week 1
-- Project setup, auth, DB schema, RLS policies.
+- Project setup (Vercel + Supabase), auth, DB schema, RLS policies.
 - Basic container and item CRUD pages.
+- Mobile viewport implementation for Pixel 9 Pro and iPhone 14/15 Pro.
 
 ### Week 2
 - Sharing workflow and permission checks.

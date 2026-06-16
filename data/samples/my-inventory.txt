@@ -1,0 +1,53 @@
+For My Inventory for home, I would like to keep records the list of all items stored in which bags/box at which location / rooms.
+
+I am thinking of high level to be categorized as group / folder / ? (I dont know what good name) with details,
+- name
+- location 
+- tags / labels
+- notes
+- quantity
+- photos
+- audit 
+    - last Updated datetime
+    - last updated by
+    - created datetime
+    - created by
+    - removed by
+    - removed datetime
+    - removed reason
+- cost
+etc.
+
+I am thinking of having individual item to be categorized as item with details,
+- name
+- location
+- tags / labels
+- notes
+- quantity
+- cost
+- photos
+- audit
+- priority
+- serialNo
+- status
+    - enable
+    - disable
+- product
+    - mfg company
+    - seller
+    - buyer
+
+
+Each group / folder can have list of other group/folder or item
+
+cost for group / folder will be computed by all children and not editable field.
+cost for item is editable
+
+
+The my inventory app is only accessible to invitable users.  
+
+the group/folder can be shareable between users. if shared, default permission is write, meaning any user from shared can edit and others can read updated.
+this sharing option is for ease of managing at the same time, transparency among team.
+
+these groups/folders/items can be searchable within parent group/folder
+

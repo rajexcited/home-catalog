@@ -33,7 +33,7 @@ Cons:
 - More implementation effort for role-sharing and hierarchical queries.
 
 ### Option B - Supabase + Object Storage (Near-Free Start)
-- Frontend: Next.js PWA (web-first, mobile-friendly).
+- Frontend: Next.js PWA deployed on Vercel (web-first, mobile-friendly).
 - Auth: Supabase Auth (magic link/email invite flow).
 - Database: Supabase Postgres with Row Level Security (RLS).
 - Photos: Supabase Storage (or Cloudflare R2 for lower storage/egress cost).
@@ -68,7 +68,7 @@ Cons:
 ## 3) Best Recommendation
 For your current expected usage (4-6 users, family collaboration, low budget), the best fit is:
 
-**Option B: Supabase + Next.js PWA + Supabase Storage (or R2)**
+**Option B: Supabase + Next.js on Vercel + PWA + Supabase Storage (or R2)**
 
 Why:
 - Delivers near-free monthly cost for current usage.
