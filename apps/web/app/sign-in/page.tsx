@@ -8,8 +8,8 @@ export default function SignInPage() {
       <section className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
         <div className="rounded-[2rem] border border-white/70 bg-white/85 p-6 shadow-[0_20px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-500">Invite-only access</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Sign in with your email link.</h1>
-          <p className="mt-4 text-sm leading-6 text-slate-600">Use an invited email address. Supabase will send a magic link to complete sign-in.</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Sign in with username and password.</h1>
+          <p className="mt-4 text-sm leading-6 text-slate-600">Use an invited account and your password to access the app.</p>
 
           <SignInForm />
 
@@ -17,9 +17,9 @@ export default function SignInPage() {
             <p className="font-medium text-slate-800">Supabase setup checklist</p>
             <ol className="mt-2 list-decimal space-y-1 pl-5">
               <li>Set Site URL to your local or deployed app URL.</li>
-              <li>Add /auth/confirm as an allowed redirect URL.</li>
+              <li>Enable Email provider with email/password sign-in.</li>
               <li>Disable open sign-ups if you want invite-only access.</li>
-              <li>Invite users from Authentication, then they can sign in here.</li>
+              <li>Create or invite users in Authentication, and ensure each user has a password.</li>
             </ol>
           </div>
 
