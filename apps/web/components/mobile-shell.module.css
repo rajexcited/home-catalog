@@ -1,0 +1,52 @@
+﻿.page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.container {
+  width: 100%;
+  max-width: 29rem;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 4.25rem;
+}
+.dashHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.9rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+.appLabel { margin: 0; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.2em; color: #94a3b8; font-weight: 700; }
+.dashTitle { margin: 0.28rem 0 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.dashSubtitle { margin: 0.25rem 0 0; font-size: 0.8rem; color: #64748b; }
+.dashActions { display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0; padding-top: 0.1rem; }
+.pageHeader {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.875rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  min-height: 3rem;
+}
+.backBtn { display: grid; place-items: center; width: 2.15rem; height: 2.15rem; border-radius: 0.55rem; background: #f1f5f9; color: #0f172a; text-decoration: none; flex-shrink: 0; }
+.pageTitle { margin: 0; font-size: 0.95rem; font-weight: 700; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pageActions { display: flex; gap: 0.3rem; align-items: center; justify-content: flex-end; }
+.content { flex: 1; display: flex; flex-direction: column; gap: 0.75rem; padding: 0.875rem; }
+.nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.97); border-top: 1px solid #e2e8f0; backdrop-filter: blur(10px); }
+.navList { list-style: none; margin: 0; padding: 0 0.5rem; display: grid; grid-template-columns: repeat(5,1fr); max-width: 29rem; margin-inline: auto; height: 3.75rem; align-items: center; }
+.navLink { display: flex; flex-direction: column; align-items: center; gap: 0.18rem; padding: 0.25rem 0; text-decoration: none; color: #94a3b8; }
+.navLink span { font-size: 0.58rem; font-weight: 600; letter-spacing: 0.02em; }
+.active { color: #2563eb; }
+.addItem { display: flex; justify-content: center; align-items: center; }
+.addBtn { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border-radius: 50%; background: #0f172a; color: #ffffff; text-decoration: none; box-shadow: 0 4px 14px rgba(15,23,42,0.35); }
+.iconBtn { display: grid; place-items: center; width: 2.15rem; height: 2.15rem; border-radius: 0.55rem; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; text-decoration: none; }
+@media (min-width: 640px) { .container, .navList { max-width: 32rem; } }

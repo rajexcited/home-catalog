@@ -186,6 +186,51 @@ export type Database = {
           }
         ];
       };
+      item_images: {
+        Row: {
+          id: string;
+          item_id: string;
+          owner_user_id: string;
+          storage_path: string;
+          caption: string | null;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          item_id: string;
+          owner_user_id: string;
+          storage_path: string;
+          caption?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          item_id?: string;
+          owner_user_id?: string;
+          storage_path?: string;
+          caption?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "item_images_item_id_fkey";
+            columns: ["item_id"];
+            isOneToOne: false;
+            referencedRelation: "items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "item_images_owner_user_id_fkey";
+            columns: ["owner_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       users: {
         Row: {
           id: string;

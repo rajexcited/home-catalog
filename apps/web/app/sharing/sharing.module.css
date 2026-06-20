@@ -1,0 +1,37 @@
+.panel {
+    border-radius: 1rem;
+    border: 1px solid #dbe4ee;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    padding: 0.95rem;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.8rem;
+    background: #eef2ff;
+    padding: 0.7rem;
+}
+
+.name {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.meta {
+    margin-top: 0.2rem;
+    font-size: 0.76rem;
+    color: #475569;
+}
+
+.pill {
+    border-radius: 0.65rem;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    padding: 0.32rem 0.5rem;
+    color: #0f172a;
+    font-size: 0.72rem;
+    font-weight: 700;
+}

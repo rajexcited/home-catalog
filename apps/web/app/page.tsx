@@ -1,28 +1,21 @@
 import Link from "next/link";
+import Image from "next/image";
 
-import { createContainer, createItem, signOut } from "@/app/actions";
+import { MobileShell } from "@/components/mobile-shell";
+import { BellIcon, FolderIcon, BoxIcon, GridIcon, MapPinIcon, SearchIcon, AddContainerIcon, AddItemIcon } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
+import styles from "@/app/page.module.css";
 
-type ContainerRecord = {
-  id: string;
-  name: string;
-  location: string | null;
-  container_type: string | null;
-  status: string;
-};
+function relativeTime(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
-type ItemRecord = {
-  id: string;
-  name: string;
-  quantity: number | null;
-  unit_cost: number | null;
-  status: string;
-  containers: {
-    name: string;
-  } | null;
-};
-
-export default async function Home() {
+export default async function HomePage() {
   const supabase = await createClient();
   const {
     data: { user }
@@ -30,224 +23,214 @@ export default async function Home() {
 
   if (!user) {
     return (
-      <main className="flex flex-1 flex-col bg-[radial-gradient(circle_at_top,#f5efe3_0%,#f3eee6_32%,#e6edf5_100%)] text-slate-950">
-        <section className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 pb-10 pt-8 sm:px-6">
-          <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-[0_20px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
-            <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-500">Home Catalog PWA</p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">Sign in to start managing containers and items.</h1>
-            <p className="mt-4 text-sm leading-6 text-slate-600">
-              Supabase Auth is wired for email magic links, and the first database-backed inventory screens are ready once your project keys and schema are in
-              place.
-            </p>
-            <div className="mt-6 flex flex-col gap-3">
-              <Link
-                href="/sign-in"
-                className="flex h-12 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-medium text-white transition-colors hover:bg-slate-800"
-              >
-                Open sign in
+      <main className={styles.publicPage}>
+        <section className={styles.publicWrap}>
+          <article className={styles.publicHero}>
+            <p className={styles.publicLabel}>Home Catalog</p>
+            <h1 className={styles.publicTitle}>Know what you own and where it lives.</h1>
+            <p className={styles.publicBody}>A private household inventory for containers, items, photos, and value tracking.</p>
+            <div className={styles.publicActions}>
+              <Link href="/sign-in" className={styles.publicAction}>
+                Sign in to continue
               </Link>
-              <div className="rounded-[1.5rem] bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                <p className="font-medium text-slate-800">Before this works against Supabase:</p>
-                <ol className="mt-2 list-decimal space-y-1 pl-5">
-                  <li>Enable Email auth in Supabase.</li>
-                  <li>Turn off open sign-ups and invite users from the Auth dashboard.</li>
-                  <li>Run the initial SQL migration in the supabase folder.</li>
-                  <li>Set your site URL env vars locally and in Vercel.</li>
-                </ol>
-              </div>
+              <p className={styles.publicHint}>Sign-up is disabled. Access is invite-only.</p>
             </div>
-          </div>
+          </article>
+          <article className={styles.publicCollageCard}>
+            <Image src="/public-collage.svg" alt="App preview" width={1200} height={760} priority className={styles.publicCollageImage} />
+          </article>
+          <section className={styles.publicPoints}>
+            <article className={styles.publicPoint}>
+              <p className={styles.publicPointTitle}>Organize by place</p>
+              <p className={styles.publicPointBody}>Track rooms, shelves, boxes, and nested containers.</p>
+            </article>
+            <article className={styles.publicPoint}>
+              <p className={styles.publicPointTitle}>Find items quickly</p>
+              <p className={styles.publicPointBody}>Search by name and jump directly to item details.</p>
+            </article>
+            <article className={styles.publicPoint}>
+              <p className={styles.publicPointTitle}>Keep visual records</p>
+              <p className={styles.publicPointBody}>Attach photos and keep an up-to-date value snapshot.</p>
+            </article>
+          </section>
         </section>
       </main>
     );
   }
 
-  const [containersResult, itemsResult] = await Promise.all([
-    supabase.from("containers").select("id, name, location, container_type, status").order("created_at", { ascending: false }).limit(8),
-    supabase.from("items").select("id, name, quantity, unit_cost, status, containers(name)").order("created_at", { ascending: false }).limit(12)
+  const [
+    { count: containerCount },
+    { count: itemCount },
+    { data: categories },
+    { data: locations },
+    { data: recentItems },
+    { data: recentContainers },
+    { data: profile },
+    { data: itemValues }
+  ] = await Promise.all([
+    supabase.from("containers").select("id", { head: true, count: "exact" }).eq("owner_user_id", user.id),
+    supabase.from("items").select("id", { head: true, count: "exact" }).eq("owner_user_id", user.id),
+    supabase.from("items").select("category").eq("owner_user_id", user.id).not("category", "is", null),
+    supabase.from("containers").select("location").eq("owner_user_id", user.id).not("location", "is", null),
+    supabase.from("items").select("id, name, created_at, containers(name)").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(5),
+    supabase.from("containers").select("id, name, created_at").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(5),
+    supabase.from("users").select("display_name, email").eq("id", user.id).single(),
+    supabase.from("items").select("quantity, unit_cost").eq("owner_user_id", user.id)
   ]);
 
-  const schemaMissing = containersResult.error?.code === "42P01" || itemsResult.error?.code === "42P01";
-  const containers = (containersResult.data ?? []) as ContainerRecord[];
-  const items = (itemsResult.data ?? []) as ItemRecord[];
+  const categoryCount = new Set((categories ?? []).map((c: { category: string | null }) => c.category)).size;
+  const locationCount = new Set((locations ?? []).map((l: { location: string | null }) => l.location)).size;
+  const totalValue = (itemValues ?? []).reduce(
+    (s: number, i: { quantity: number | null; unit_cost: number | null }) => s + Number(i.quantity ?? 1) * Number(i.unit_cost ?? 0),
+    0
+  );
+
+  const displayName = profile?.display_name ?? profile?.email ?? user.email ?? "User";
+  const initials = displayName
+    .split(" ")
+    .map((word: string) => word[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  const recentActivity = [
+    ...(recentContainers ?? []).map((container: { id: string; name: string; created_at: string }) => ({
+      id: `container-${container.id}`,
+      text: `Created container ${container.name}`,
+      time: container.created_at,
+      kind: "container"
+    })),
+    ...(recentItems ?? []).map((item: { id: string; name: string; created_at: string; containers: unknown }) => {
+      const contName = item.containers && !Array.isArray(item.containers) ? (item.containers as { name: string }).name : "";
+      return {
+        id: `item-${item.id}`,
+        text: `Added ${item.name}${contName ? ` to ${contName}` : ""}`,
+        time: item.created_at,
+        kind: "item"
+      };
+    })
+  ]
+    .sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime())
+    .slice(0, 6);
 
   return (
-    <main className="flex flex-1 flex-col bg-[radial-gradient(circle_at_top,#f5efe3_0%,#f3eee6_32%,#e6edf5_100%)] text-slate-950">
-      <section className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 pb-10 pt-8 sm:px-6">
-        <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-[0_20px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-500">Inventory Dashboard</p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Welcome back.</h1>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Signed in as {user.email}. Create containers, drop in items, and use this as the first live backend slice.
-              </p>
-            </div>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="rounded-full border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
+    <MobileShell
+      title="Home Catalog"
+      activeNav="home"
+      headerActions={
+        <>
+          <Link href="/activity" className={styles.headerIconBtn} aria-label="Activity">
+            <BellIcon size={19} />
+          </Link>
+          <Link href="/profile" className={styles.avatarBtn} aria-label="Profile">
+            {initials}
+          </Link>
+        </>
+      }
+    >
+      <Link href="/search" className={styles.searchBar}>
+        <SearchIcon size={15} />
+        <span>Search containers, items, tags...</span>
+      </Link>
+
+      <section className={styles.actionRow}>
+        <Link href="/containers?add=1" className={styles.actionCard}>
+          <span className={`${styles.actionIcon} ${styles.iconFolder}`}>
+            <AddContainerIcon size={18} />
+          </span>
+          <span>
+            <strong>Add Container</strong>
+            <small>Room, shelf, box</small>
+          </span>
+        </Link>
+        <Link href="/items/new" className={styles.actionCard}>
+          <span className={`${styles.actionIcon} ${styles.iconBox}`}>
+            <AddItemIcon size={18} />
+          </span>
+          <span>
+            <strong>Add Item</strong>
+            <small>Inventory entry</small>
+          </span>
+        </Link>
+      </section>
+
+      <div className={styles.quickNav}>
+        <Link href="/containers" className={styles.quickNavItem}>
+          <span className={`${styles.quickNavIcon} ${styles.iconFolder}`}>
+            <FolderIcon size={21} />
+          </span>
+          <p className={styles.quickNavLabel}>Containers</p>
+          <p className={styles.quickNavCount}>{containerCount ?? 0}</p>
+        </Link>
+        <Link href="/search" className={styles.quickNavItem}>
+          <span className={`${styles.quickNavIcon} ${styles.iconBox}`}>
+            <BoxIcon size={21} />
+          </span>
+          <p className={styles.quickNavLabel}>Items</p>
+          <p className={styles.quickNavCount}>{(itemCount ?? 0).toLocaleString()}</p>
+        </Link>
+        <Link href="/types/items" className={styles.quickNavItem}>
+          <span className={`${styles.quickNavIcon} ${styles.iconGrid}`}>
+            <GridIcon size={21} />
+          </span>
+          <p className={styles.quickNavLabel}>Categories</p>
+          <p className={styles.quickNavCount}>{categoryCount}</p>
+        </Link>
+        <Link href="/types/containers" className={styles.quickNavItem}>
+          <span className={`${styles.quickNavIcon} ${styles.iconPin}`}>
+            <MapPinIcon size={21} />
+          </span>
+          <p className={styles.quickNavLabel}>Locations</p>
+          <p className={styles.quickNavCount}>{locationCount}</p>
+        </Link>
+      </div>
+
+      <section className={styles.card}>
+        <div className={styles.row}>
+          <h2 className={styles.sectionTitle} style={{ marginBottom: 0 }}>
+            Recent Activity
+          </h2>
+          <Link href="/activity" className={styles.viewAll}>
+            View all
+          </Link>
         </div>
+        {recentActivity.length === 0 ? (
+          <p className={styles.empty}>No activity yet. Add a container or item to get started.</p>
+        ) : (
+          <ul className={styles.activityList} style={{ marginTop: "0.6rem" }}>
+            {recentActivity.map((entry) => {
+              return (
+                <li key={entry.id} className={styles.activityItem}>
+                  <span className={`${styles.activityDot} ${entry.kind === "container" ? styles.dotContainer : styles.dotItem}`} />
+                  <p className={styles.activityText}>{entry.text}</p>
+                  <p className={styles.activityTime}>{relativeTime(entry.time)}</p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
-        {schemaMissing ? (
-          <div className="mt-6 rounded-[1.75rem] border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950 shadow-[0_20px_50px_-40px_rgba(180,83,9,0.4)]">
-            <p className="font-semibold">Supabase tables are not created yet.</p>
-            <p className="mt-2">
-              Run the migration in the supabase folder, then refresh this screen. The auth flow is ready, but the containers and items tables must exist before
-              queries can succeed.
-            </p>
+      <section className={styles.card}>
+        <h2 className={styles.sectionTitle}>Quick Stats</h2>
+        <div className={styles.statsGrid}>
+          <div className={styles.statItem}>
+            <p className={styles.statLabel}>Total Items</p>
+            <p className={styles.statValue}>{(itemCount ?? 0).toLocaleString()}</p>
           </div>
-        ) : null}
-
-        <div className="mt-6 grid gap-4">
-          <article className="rounded-[1.75rem] bg-slate-950 p-5 text-slate-50 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.8)]">
-            <p className="text-xs uppercase tracking-[0.24em] text-amber-300/80">Add container</p>
-            <form action={createContainer} className="mt-4 space-y-3">
-              <input
-                name="name"
-                placeholder="Kitchen pantry"
-                className="h-12 w-full rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white outline-none placeholder:text-slate-400"
-                required
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  name="containerType"
-                  placeholder="cabinet"
-                  className="h-12 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white outline-none placeholder:text-slate-400"
-                />
-                <input
-                  name="location"
-                  placeholder="kitchen"
-                  className="h-12 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white outline-none placeholder:text-slate-400"
-                />
-              </div>
-              <button
-                type="submit"
-                className="flex h-12 w-full items-center justify-center rounded-full bg-white px-5 text-sm font-medium text-slate-950 transition-colors hover:bg-slate-100"
-              >
-                Save container
-              </button>
-            </form>
-          </article>
-
-          <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.35)]">
-            <p className="text-sm font-medium text-slate-500">Add item</p>
-            <form action={createItem} className="mt-4 space-y-3">
-              <input
-                name="name"
-                placeholder="Olive oil"
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                required
-              />
-              <select
-                name="containerId"
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none"
-                defaultValue=""
-                required
-                disabled={containers.length === 0}
-              >
-                <option value="" disabled>
-                  {containers.length === 0 ? "Create a container first" : "Choose a container"}
-                </option>
-                {containers.map((container) => (
-                  <option key={container.id} value={container.id}>
-                    {container.name}
-                  </option>
-                ))}
-              </select>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  name="quantity"
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="1"
-                  className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                />
-                <input
-                  name="unitCost"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="12.99"
-                  className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                />
-              </div>
-              <button
-                type="submit"
-                className="flex h-12 w-full items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:bg-slate-300"
-                disabled={containers.length === 0}
-              >
-                Save item
-              </button>
-            </form>
-          </article>
-
-          <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.35)]">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-slate-500">Recent containers</p>
-                <h2 className="mt-1 text-xl font-semibold text-slate-950">{containers.length} loaded</h2>
-              </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">Backend</span>
-            </div>
-            <div className="mt-4 space-y-3">
-              {containers.length === 0 ? (
-                <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">No containers yet.</p>
-              ) : (
-                containers.map((container) => (
-                  <div key={container.id} className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{container.name}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">{(container.container_type ?? "container").toUpperCase()}</p>
-                      </div>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-600">{container.status}</span>
-                    </div>
-                    {container.location ? <p className="mt-3 text-sm text-slate-600">{container.location}</p> : null}
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
-
-          <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.35)]">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-slate-500">Recent items</p>
-                <h2 className="mt-1 text-xl font-semibold text-slate-950">{items.length} loaded</h2>
-              </div>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Live query</span>
-            </div>
-            <div className="mt-4 space-y-3">
-              {items.length === 0 ? (
-                <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">No items yet.</p>
-              ) : (
-                items.map((item) => (
-                  <div key={item.id} className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{item.name}</p>
-                        <p className="mt-1 text-sm text-slate-500">{item.containers?.name ?? "Unassigned container"}</p>
-                      </div>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-600">{item.status}</span>
-                    </div>
-                    <p className="mt-3 text-sm text-slate-600">
-                      Qty {item.quantity ?? 1}
-                      {typeof item.unit_cost === "number" ? ` • $${item.unit_cost.toFixed(2)}` : ""}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
+          <div className={styles.statItem}>
+            <p className={styles.statLabel}>Total Value</p>
+            <p className={styles.statValue}>${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
+          <div className={styles.statItem}>
+            <p className={styles.statLabel}>Containers</p>
+            <p className={styles.statValue}>{containerCount ?? 0}</p>
+          </div>
+          <div className={styles.statItem}>
+            <p className={styles.statLabel}>Categories</p>
+            <p className={styles.statValue}>{categoryCount}</p>
+          </div>
         </div>
       </section>
-    </main>
+    </MobileShell>
   );
 }
