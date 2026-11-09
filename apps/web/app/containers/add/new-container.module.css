@@ -1,0 +1,148 @@
+.card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.875rem;
+    padding: 0.875rem;
+}
+
+/* .sectionTitle {
+    margin: 0 0 0.6rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+} */
+
+
+.btnPrimary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    border: none;
+    border-radius: 0.65rem;
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    gap: 0.4rem;
+}
+
+.btnSecondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.65rem;
+    background: #fff;
+    color: #0f172a;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    gap: 0.4rem;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.btnDanger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    border: none;
+    border-radius: 0.65rem;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+}
+
+.detailsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+}
+
+.kv {
+    background: #f8fafc;
+    border-radius: 0.65rem;
+    padding: 0.6rem;
+}
+
+.kvLabel {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+
+.kvValue {
+    margin: 0.2rem 0 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.sectionTitle {
+    margin: 0 0 0.6rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.auditRow {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: 20% 70%;
+    font-size: .72rem;
+    color: #64748b;
+}
+
+.auditRow .auditLabel {
+    margin: 0;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.auditRow .auditValue {
+    color: #64748b;
+    /* margin-bottom: .2rem; */
+    font-weight: 400;
+}
+
+
+.statsRow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+}
+
+.stat {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.65rem;
+    padding: 0.6rem;
+    text-align: center;
+}
+
+.statLabel {
+    margin: 0;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.statValue {
+    margin: 0.15rem 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+}

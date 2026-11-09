@@ -14,6 +14,7 @@ flowchart LR
 ```
 
 ## 1.1) MVP Device Targets
+
 - Primary mobile targets: Pixel 9 Pro, iPhone 14 Pro, iPhone 15 Pro.
 - Responsive scope for MVP: mobile-only layouts first.
 - Tablet/desktop optimization is deferred until post-MVP.
@@ -21,6 +22,7 @@ flowchart LR
 ## 2) Core Domain Model
 
 ### Main entities
+
 - users
 - containers (parent-child hierarchy)
 - items
@@ -31,12 +33,14 @@ flowchart LR
 ### Suggested SQL tables
 
 #### users
+
 - id (uuid, pk)
 - email (text, unique)
 - display_name (text)
 - created_at (timestamptz)
 
 #### containers
+
 - id (uuid, pk)
 - parent_id (uuid, nullable, fk containers.id)
 - owner_user_id (uuid, fk users.id)
@@ -52,6 +56,7 @@ flowchart LR
 - removed_at, removed_by, removed_reason
 
 #### container_members
+
 - container_id (uuid, fk containers.id)
 - user_id (uuid, fk users.id)
 - role (text: 'owner'|'manager'|'editor'|'viewer')
@@ -60,6 +65,7 @@ flowchart LR
 - primary key (container_id, user_id)
 
 #### items
+
 - id (uuid, pk)
 - container_id (uuid, fk containers.id)
 - owner_user_id (uuid, fk users.id)
@@ -71,7 +77,7 @@ flowchart LR
 - notes (text)
 - quantity (numeric)
 - unit_cost (numeric)
-- priority (text)
+- priority (numeric)
 - serial_no (text)
 - barcode (text)
 - qr_code (text)
@@ -86,6 +92,7 @@ flowchart LR
 - removed_at, removed_by, removed_reason
 
 #### item_photos
+
 - id (uuid, pk)
 - item_id (uuid, fk items.id)
 - storage_path (text)
@@ -96,6 +103,7 @@ flowchart LR
 - created_at
 
 #### audit_logs
+
 - id (bigserial, pk)
 - entity_type (text: 'container'|'item')
 - entity_id (uuid)
@@ -107,12 +115,14 @@ flowchart LR
 - diff_json (jsonb)
 
 ## 3) Cost Computation
-- Item total cost = quantity * unit_cost.
+
+- Item total cost = quantity \* unit_cost.
 - Container computed cost = sum of all descendant item totals.
 - Implement with recursive CTE query for on-demand calculation.
 - If data grows, add a materialized summary table refreshed on item updates.
 
 ## 4) Search Model
+
 - Search scope: only within selected parent container subtree.
 - SQL strategy:
   - Store text search vector on name + tags + notes + serial_no + product_mfg_company + product_seller + barcode.
@@ -128,6 +138,7 @@ flowchart LR
   - GIN(search_vector)
 
 ## 5) Access Control and Sharing Rules
+
 - App is invite-only.
 - Default sharing role for invited container member: editor (write).
 - Manager role can invite members and adjust viewer/editor roles.
@@ -138,6 +149,7 @@ flowchart LR
 - Enforce with Postgres RLS policies.
 
 ## 6) API Surface (Example)
+
 - POST /containers
 - GET /containers/:id
 - POST /containers/:id/share
@@ -153,6 +165,7 @@ flowchart LR
 - GET /containers/:id/export
 
 ## 7) UI Strategy
+
 - Build mobile-first responsive PWA on Next.js hosted on Vercel:
   - Installable on mobile home screen.
   - Optimized first for Pixel 9 Pro and iPhone 14/15 Pro viewport classes.

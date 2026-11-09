@@ -1,0 +1,16 @@
+.textarea {
+    width: 100%;
+    min-height: 5rem;
+    border-radius: 0.65rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.875rem;
+    resize: vertical;
+}
+
+.characterCount {
+    font-size: 0.72rem;
+    color: #64748b;
+    text-align: right;
+}

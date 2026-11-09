@@ -1,0 +1,8 @@
+.toastErr {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-radius: 0.65rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}

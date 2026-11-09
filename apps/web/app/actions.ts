@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
 import { createClient } from "@/lib/supabase/server";
+import { ContainerTypeReadResource, getContainerIds, getContainerTypes } from "./services/container-service";
+import { getUserId } from "./services/user-service";
+import { validate as isValidUUID } from "uuid";
+import { getDistinctAttributeValuesFromItems } from "./services/item-service";
 
 const ITEM_IMAGES_BUCKET = "item-images";
 
@@ -11,7 +14,18 @@ function getString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
-function getNumber(formData: FormData, key: string, fallback: number) {
+function getStringArray(formData: FormData, key: string) {
+  const values = formData
+    .getAll(key)
+    .flatMap((value) => String(value ?? ""))
+    .map((value) => value.trim())
+    .filter((v) => v.length > 0);
+
+  const valueSet = new Set(values);
+  return Array.from(valueSet);
+}
+
+function getNumber(formData: FormData, key: string, fallback?: number) {
   const value = getString(formData, key);
   if (!value) {
     return fallback;
@@ -34,6 +48,16 @@ function getOptionalNumber(formData: FormData, key: string) {
 function getOptionalDate(formData: FormData, key: string) {
   const value = getString(formData, key);
   return value || null;
+}
+
+function withWarrantyExpiry(attributes: Record<string, any> | null | undefined, warrantyExpiry: string | null) {
+  const next: Record<string, any> = { ...(attributes ?? {}) };
+  if (warrantyExpiry) {
+    next.warranty_expiry = warrantyExpiry;
+  } else {
+    delete next.warranty_expiry;
+  }
+  return next;
 }
 
 function sanitizeFileName(name: string) {
@@ -85,6 +109,39 @@ export async function signOut() {
   redirect("/");
 }
 
+async function getContainerTypeId(typeName: string) {
+  const supabase = createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    return { id: "", error: "User not authenticated" };
+  }
+  const { containerTypes, error: fetchError } = await getContainerTypes(supabase);
+  if (fetchError) {
+    return { id: "", error: "Failed to fetch container types: " + fetchError };
+  }
+  let existing: ContainerTypeReadResource | undefined = undefined;
+  if (isValidUUID(typeName)) {
+    existing = containerTypes.byId[typeName];
+  } else {
+    existing = containerTypes.byName[typeName];
+  }
+  if (existing) {
+    return { id: existing.id, error: null };
+  }
+  const supabaseClient = await supabase;
+  const { data, error: createError } = await supabaseClient
+    .from("container_types")
+    .insert({ name: typeName, owner_user_id: userId, description: "type created" })
+    .select("id")
+    .single();
+
+  if (createError) {
+    return { id: "", error: "Failed to create container type: " + createError.message };
+  }
+
+  return { id: data.id, error: null };
+}
+
 export async function createContainer(formData: FormData) {
   const { supabase, user } = await requireUser();
 
@@ -94,10 +151,19 @@ export async function createContainer(formData: FormData) {
   }
 
   const location = getString(formData, "location");
+  //TODO validate with existing value and add api call if needed
   const containerType = getString(formData, "containerType");
   const notes = getString(formData, "notes");
+  const tags = getStringArray(formData, "tags");
   const parentId = getString(formData, "parentId");
+  const unitCost = getNumber(formData, "unitCost");
 
+  console.log("Creating container with data:", { name, location, containerType, notes, tags, parentId, unitCost });
+  console.log("tags in formData:", formData.getAll("tags"));
+  const { id: containerTypeId, error: typeError } = await getContainerTypeId(containerType);
+  if (typeError) {
+    redirect(`/containers?error=${encodeURIComponent(typeError)}`);
+  }
   const { data, error } = await supabase
     .from("containers")
     .insert({
@@ -105,19 +171,19 @@ export async function createContainer(formData: FormData) {
       name,
       parent_id: parentId || null,
       location: location || null,
-      container_type: containerType || null,
-      notes: notes || null,
-      created_by: user.id,
-      updated_by: user.id
+      container_type: containerTypeId,
+      notes: notes,
+      unit_cost: unitCost || null,
+      tags: tags.length > 0 ? tags : null
     })
     .select("id")
     .single();
 
   if (error) {
-    redirect(`/containers?error=${encodeURIComponent(error.message)}`);
+    redirect(`/containers?error=${encodeURIComponent(toContainerErrorMessage(error))}`);
   }
 
-  await supabase.from("containers").update({ path: data.id }).eq("id", data.id);
+  //   await supabase.from("containers").update({ path: data.id }).eq("id", data.id);
   revalidatePath("/");
   revalidatePath("/containers");
   redirect("/containers?success=Container created");
@@ -135,28 +201,45 @@ export async function updateContainer(formData: FormData) {
   const location = getString(formData, "location");
   const containerType = getString(formData, "containerType");
   const notes = getString(formData, "notes");
+  const parentId = getString(formData, "parentId");
+  const tags = getStringArray(formData, "tags");
 
+  const { id: containerTypeId, error: typeError } = await getContainerTypeId(containerType);
+  if (typeError) {
+    redirect(`/containers?error=${encodeURIComponent(typeError)}`);
+  }
   const { error } = await supabase
     .from("containers")
     .update({
       name: name || undefined,
       location: location || null,
-      container_type: containerType || null,
+      container_type: containerTypeId,
+      parent_id: parentId || null,
       notes: notes || null,
+      tags: tags.length > 0 ? tags : null,
       updated_by: user.id
     })
     .eq("id", id)
     .eq("owner_user_id", user.id);
 
   if (error) {
-    redirect(`/containers/${id}/details?error=${encodeURIComponent(error.message)}`);
+    redirect(`/containers/${id}?error=${encodeURIComponent(toContainerErrorMessage(error))}`);
   }
 
   revalidatePath("/");
   revalidatePath("/containers");
   revalidatePath(`/containers/${id}`);
-  revalidatePath(`/containers/${id}/details`);
-  redirect(`/containers/${id}/details?success=Saved`);
+  redirect(`/containers/${id}?success=Saved`);
+}
+
+function toContainerErrorMessage(error: { code?: string; message: string }) {
+  if (error.code !== "23505") {
+    return error.message;
+  }
+  if (error.message.includes("unique_container_name_under_parent")) {
+    return "A container with this name already exists under the selected parent container";
+  }
+  return "A top-level container with this name already exists";
 }
 
 export async function deleteContainer(formData: FormData) {
@@ -169,7 +252,7 @@ export async function deleteContainer(formData: FormData) {
 
   const { error } = await supabase.from("containers").delete().eq("id", id).eq("owner_user_id", user.id);
   if (error) {
-    redirect(`/containers/${id}/details?error=${encodeURIComponent(error.message)}`);
+    redirect(`/containers/${id}?error=${encodeURIComponent(error.message)}`);
   }
 
   revalidatePath("/");
@@ -177,43 +260,101 @@ export async function deleteContainer(formData: FormData) {
   redirect("/containers?success=Container removed");
 }
 
-export async function createItem(formData: FormData) {
-  const { supabase, user } = await requireUser();
-
-  const name = getString(formData, "name");
-  const containerId = getString(formData, "containerId");
-
-  if (!name || !containerId) {
-    redirect("/items/new?error=Name and container are required");
+async function getItemCategoryId(categoryName: string, userId: string, supabase = createClient()) {
+  const { containerIds, error: containerIdsError } = await getContainerIds(supabase);
+  if (containerIdsError) {
+    return { id: "", error: "Failed to fetch container ids: " + containerIdsError };
+  }
+  const { distinctValues, error: distinctValuesError } = await getDistinctAttributeValuesFromItems(containerIds, supabase);
+  if (distinctValuesError) {
+    return { id: "", error: "Failed to fetch distinct item categories: " + distinctValuesError };
+  }
+  const matchingCategory = distinctValues.item_category_options.find((category) => category.name.toLowerCase() === categoryName.trim().toLowerCase());
+  if (matchingCategory) {
+    return { id: matchingCategory.id, error: null };
   }
 
-  const quantity = getNumber(formData, "quantity", 1);
-  const unitCost = getNumber(formData, "unitCost", 0);
-  const category = getString(formData, "category");
-  const notes = getString(formData, "notes");
-  const purchaseDate = getOptionalDate(formData, "purchaseDate");
-  const warrantyExpiry = getOptionalDate(formData, "warrantyExpiry");
-
-  const { data, error } = await supabase
-    .from("items")
+  const supabaseClient = await supabase;
+  const { data, error: createError } = await supabaseClient
+    .from("item_categories")
     .insert({
-      owner_user_id: user.id,
-      container_id: containerId,
-      name,
-      category: category || null,
-      notes: notes || null,
-      quantity,
-      unit_cost: unitCost,
-      purchase_date: purchaseDate,
-      warranty_expiry: warrantyExpiry,
-      created_by: user.id,
-      updated_by: user.id
+      name: categoryName,
+      owner_user_id: userId,
+      description: "category created",
+      updated_by: userId
     })
     .select("id")
     .single();
 
-  if (error) {
-    redirect(`/items/new?error=${encodeURIComponent(error.message)}`);
+  if (createError) {
+    return { id: "", error: "Failed to create item category: " + createError.message };
+  }
+
+  return { id: data.id, error: null };
+}
+
+export async function createItem(formData: FormData) {
+  // const { supabase, user } = await requireUser();
+  const supabase = createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  const errors = [];
+  const name = getString(formData, "name");
+  if (!name) {
+    errors.push("Name is required");
+  }
+
+  const containerId = getString(formData, "container");
+  if (!containerId || !isValidUUID(containerId)) {
+    errors.push("Container is required");
+  }
+  const category = getString(formData, "category");
+  if (!category) {
+    errors.push("Category is required");
+  }
+  if (errors.length > 0) {
+    redirect(`/items/add?error=${encodeURIComponent(errors.join("$,$"))}`);
+  }
+
+  let categoryId: string = category;
+  if (!isValidUUID(categoryId)) {
+    const { id, error: categoryError } = await getItemCategoryId(category, userId, supabase);
+    if (categoryError) {
+      redirect(`/items/add?error=${encodeURIComponent(categoryError)}`);
+    }
+    categoryId = id;
+  }
+
+  const quantity = getNumber(formData, "quantity", 1);
+  const unitCost = getNumber(formData, "unitCost");
+  const notes = getString(formData, "notes");
+  const purchaseDate = getOptionalDate(formData, "purchaseDate");
+  const warrantyExpiry = getOptionalDate(formData, "warrantyExpiry");
+
+  const supabaseClient = await supabase;
+  const { data, error: insertError } = await supabaseClient
+    .from("items")
+    .insert({
+      owner_user_id: userId,
+      container_id: containerId,
+      name,
+      category: categoryId,
+      notes: notes,
+      quantity,
+      unit_cost: unitCost,
+      purchase_date: purchaseDate,
+      item_attributes: withWarrantyExpiry({}, warrantyExpiry)
+      // created_by: user.id,
+      // updated_by: user.id
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    redirect(`/items/add?error=${encodeURIComponent(insertError.message)}`);
   }
 
   revalidatePath("/");
@@ -223,7 +364,11 @@ export async function createItem(formData: FormData) {
 }
 
 export async function updateItem(formData: FormData) {
-  const { supabase, user } = await requireUser();
+  const supabase = createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    redirect("/sign-in");
+  }
   const id = getString(formData, "id");
   const containerId = getString(formData, "containerId");
 
@@ -238,8 +383,16 @@ export async function updateItem(formData: FormData) {
   const purchaseDate = getOptionalDate(formData, "purchaseDate");
   const warrantyExpiry = getOptionalDate(formData, "warrantyExpiry");
   const notes = getString(formData, "notes");
+  const tags = getStringArray(formData, "tags");
 
-  const { error } = await supabase
+  const supabaseClient = await supabase;
+  const { data: current, error: currentError } = await supabaseClient.from("items").select("item_attributes").eq("id", id).eq("owner_user_id", userId).single();
+
+  if (currentError) {
+    redirect(`/items/${id}?error=${encodeURIComponent(currentError.message)}`);
+  }
+
+  const { error } = await supabaseClient
     .from("items")
     .update({
       name: name || undefined,
@@ -247,12 +400,13 @@ export async function updateItem(formData: FormData) {
       quantity,
       unit_cost: unitCost,
       purchase_date: purchaseDate,
-      warranty_expiry: warrantyExpiry,
+      tags: tags.length > 0 ? tags : null,
+      item_attributes: withWarrantyExpiry(current.item_attributes as Record<string, any> | null, warrantyExpiry),
       notes: notes || null,
-      updated_by: user.id
+      updated_by: userId
     })
     .eq("id", id)
-    .eq("owner_user_id", user.id);
+    .eq("owner_user_id", userId);
 
   if (error) {
     redirect(`/items/${id}?error=${encodeURIComponent(error.message)}`);
@@ -365,7 +519,7 @@ export async function cloneItem(formData: FormData) {
 
   const { data: original, error: fetchError } = await supabase
     .from("items")
-    .select("container_id, name, category, quantity, unit_cost, purchase_date, warranty_expiry, notes")
+    .select("container_id, name, category, quantity, unit_cost, purchase_date, notes, item_attributes")
     .eq("id", itemId)
     .eq("owner_user_id", user.id)
     .single();
@@ -382,8 +536,8 @@ export async function cloneItem(formData: FormData) {
       quantity: original.quantity,
       unit_cost: original.unit_cost,
       purchase_date: original.purchase_date,
-      warranty_expiry: original.warranty_expiry,
       notes: original.notes,
+      item_attributes: original.item_attributes,
       created_by: user.id,
       updated_by: user.id
     })
@@ -399,32 +553,93 @@ export async function cloneItem(formData: FormData) {
 
 export async function renameContainerType(formData: FormData) {
   const { supabase, user } = await requireUser();
-  const oldType = getString(formData, "oldType");
-  const newType = getString(formData, "newType");
-  if (!oldType || !newType) redirect("/types/containers?error=Both old and new type are required");
+  const oldTypeName = getString(formData, "oldTypeName");
+  const newTypeName = getString(formData, "newTypeName");
+  const typeIds = getStringArray(formData, "typeId");
+  const typeDescription = getString(formData, "typeDescription");
+  if (!oldTypeName || !newTypeName) redirect("/containers/types?error=Both old and new type names are required");
 
-  const { error } = await supabase.from("containers").update({ container_type: newType }).eq("container_type", oldType).eq("owner_user_id", user.id);
+  const { error } = await supabase.from("container_types").update({ name: newTypeName, description: typeDescription }).in("id", typeIds);
 
-  if (error) redirect(`/types/containers?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`/containers/types?error=${encodeURIComponent(error.message)}`);
 
   revalidatePath("/");
   revalidatePath("/containers");
-  revalidatePath("/types/containers");
-  redirect("/types/containers?success=Type renamed");
+  revalidatePath("/containers/types");
+  redirect("/containers/types?success=Type saved");
+}
+
+export async function createContainerType(formData: FormData) {
+  const { supabase, user } = await requireUser();
+  const name = getString(formData, "name");
+  const description = getString(formData, "description");
+  if (!name) redirect("/containers/types?error=Type name is required");
+
+  const { error } = await supabase.from("container_types").insert({
+    name,
+    description,
+    owner_user_id: user.id,
+    created_by: user.id,
+    updated_by: user.id
+  });
+
+  if (error) {
+    const message = error.code === "23505" ? "A container type with this name already exists" : error.message;
+    redirect(`/containers/types?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/containers");
+  revalidatePath("/containers/types");
+  redirect("/containers/types?success=Type created");
 }
 
 export async function renameItemCategory(formData: FormData) {
   const { supabase, user } = await requireUser();
   const oldCategory = getString(formData, "oldCategory");
   const newCategory = getString(formData, "newCategory");
-  if (!oldCategory || !newCategory) redirect("/types/items?error=Both old and new category are required");
+  const categoryDescription = getString(formData, "categoryDescription");
+  const categoryIds = getStringArray(formData, "categoryId");
+  if (!oldCategory || !newCategory) redirect("/items/categories?error=Both old and new category names are required");
 
-  const { error } = await supabase.from("items").update({ category: newCategory }).eq("category", oldCategory).eq("owner_user_id", user.id);
+  const { error } = await supabase
+    .from("item_categories")
+    .update({ name: newCategory, description: categoryDescription, updated_by: user.id })
+    .in("id", categoryIds)
+    .eq("owner_user_id", user.id);
 
-  if (error) redirect(`/types/items?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    const message = error.code === "23505" ? "An item category with this name already exists" : error.message;
+    redirect(`/items/categories?error=${encodeURIComponent(message)}`);
+  }
 
   revalidatePath("/");
   revalidatePath("/search");
-  revalidatePath("/types/items");
-  redirect("/types/items?success=Category renamed");
+  revalidatePath("/items/categories");
+  redirect("/items/categories?success=Category saved");
+}
+
+export async function createItemCategory(formData: FormData) {
+  const { supabase, user } = await requireUser();
+  const name = getString(formData, "name");
+  const description = getString(formData, "description");
+  if (!name) redirect("/items/categories?error=Category name is required");
+
+  const { error } = await supabase.from("item_categories").insert({
+    name,
+    description,
+    owner_user_id: user.id,
+    created_by: user.id,
+    updated_by: user.id
+  });
+
+  if (error) {
+    const message = error.code === "23505" ? "An item category with this name already exists" : error.message;
+    redirect(`/items/categories?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/search");
+  revalidatePath("/items/categories");
+  redirect("/items/categories?success=Category created");
 }

@@ -1,94 +1,77 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
-import { createContainer } from "@/app/actions";
 import { MobileShell } from "@/components/mobile-shell";
-import { FolderIcon, PlusIcon, DotsVerticalIcon } from "@/components/icons";
+import { AddContainerIcon } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import styles from "@/app/containers/containers.module.css";
+import commonStyles from "@/app/common.module.css";
+import { getTopLevelContainers } from "../services/container-service";
+import { getUserId } from "../services/user-service";
+import ErrorMessages from "@/components/error-messages";
+import ContainerRow from "./container-row";
 
-type Props = { searchParams: Promise<{ success?: string; error?: string; add?: string }> };
+type SearchParams = {
+  success?: string;
+  error?: string;
+};
+
+type Props = { searchParams: Promise<SearchParams> };
+
+const DEFAULT_PAGE_SIZE = 10;
+const MAX_PAGE_SIZE = 50;
+
+const parsePositiveInt = (value: string | undefined, fallback: number) => {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const clampPageSize = (value: number) => Math.min(Math.max(value, 1), MAX_PAGE_SIZE);
+
+const buildPageHref = (page: number, pageSize: number, add: string | undefined) => {
+  const params = new URLSearchParams();
+  if (page > 1) params.set("page", String(page));
+  if (pageSize !== DEFAULT_PAGE_SIZE) params.set("page_size", String(pageSize));
+  if (add === "1") params.set("add", "1");
+  const query = params.toString();
+  return query ? `/containers?${query}` : "/containers";
+};
 
 export default async function ContainersPage({ searchParams }: Props) {
-  const { success, error, add } = await searchParams;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
+  const { success, error } = await searchParams;
+  // const page = parsePositiveInt(params.page, 1);
+  // const pageSize = clampPageSize(parsePositiveInt(params.page_size, DEFAULT_PAGE_SIZE));
+  // const rangeStart = (page - 1) * pageSize;
+  // const rangeEnd = rangeStart + pageSize + 1;
 
-  const [{ data: containers }, { data: items }] = await Promise.all([
-    supabase.from("containers").select("id, name, location, container_type, parent_id").eq("owner_user_id", user.id).order("name"),
-    supabase.from("items").select("id, container_id").eq("owner_user_id", user.id),
-  ]);
+  const supabase = createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    redirect("/sign-in");
+  }
 
-  const itemCountByContainer = new Map<string, number>();
-  for (const item of items ?? []) {
-    itemCountByContainer.set(item.container_id, (itemCountByContainer.get(item.container_id) ?? 0) + 1);
-  }
-  const childCountByContainer = new Map<string, number>();
-  for (const c of containers ?? []) {
-    if (c.parent_id) childCountByContainer.set(c.parent_id, (childCountByContainer.get(c.parent_id) ?? 0) + 1);
-  }
+  const { topLevelContainers, error: topLevelContainersError } = await getTopLevelContainers(supabase);
 
   return (
     <MobileShell
       title="Containers"
       activeNav="more"
       headerActions={
-        <Link href="/containers?add=1" className={styles.iconBtn} aria-label="Add container">
-          <PlusIcon size={17} />
+        <Link href="/containers/add" className={`${styles.iconBtn} ${styles.folderIcon}`} aria-label="Add container">
+          <AddContainerIcon size={17} />
         </Link>
       }
     >
-      {success ? <p className={styles.toastOk}>{success}</p> : null}
-      {error ? <p className={styles.toastErr}>{error}</p> : null}
+      {success ? <p className={commonStyles.toastOk}>{success}</p> : null}
+      <ErrorMessages errors={[error, topLevelContainersError]} />
 
-      {add === "1" && (
-        <section className={styles.card}>
-          <h2 className={styles.sectionTitle}>New Container</h2>
-          <form action={createContainer} className={styles.form}>
-            <input name="name" placeholder="Container name" className={styles.input} required />
-            <div className={styles.formGrid}>
-              <input name="containerType" placeholder="Type (garage, shelf…)" className={styles.input} />
-              <input name="location" placeholder="Location" className={styles.input} />
-            </div>
-            <textarea name="notes" placeholder="Notes (optional)" className={styles.textarea} rows={2} />
-            <button type="submit" className={styles.btnPrimary}>
-              <PlusIcon size={16} />Create Container
-            </button>
-          </form>
-        </section>
-      )}
+      <section className={styles.list}>
+        {topLevelContainers.list.length === 0 && <p className={styles.empty}>No containers yet. Create your first one.</p>}
+        {topLevelContainers.list.length > 0 && <h2 className={styles.sectionTitle}> {topLevelContainers.list.length} Top Containers</h2>}
 
-      <section className={styles.card}>
         <ul className={styles.list}>
-          {(containers ?? []).length === 0 && (
-            <p className={styles.empty}>No containers yet. Tap + to create your first one.</p>
-          )}
-          {(containers ?? []).map(c => {
-            const icount = itemCountByContainer.get(c.id) ?? 0;
-            const ccount = childCountByContainer.get(c.id) ?? 0;
-            return (
-              <li key={c.id}>
-                <Link href={`/containers/${c.id}`} className={styles.listItem}>
-                  <span className={styles.folderIcon}><FolderIcon size={20} /></span>
-                  <div>
-                    <p className={styles.itemName}>{c.name}</p>
-                    <p className={styles.itemMeta}>
-                      {c.container_type ? `${c.container_type} · ` : ""}
-                      {ccount > 0 ? `${ccount} sub · ` : ""}
-                      {icount} items
-                      {c.location ? ` · ${c.location}` : ""}
-                    </p>
-                  </div>
-                  <div className={styles.itemActions}>
-                    <Link href={`/containers/${c.id}/details`} className={styles.iconBtn} aria-label="Edit">
-                      <DotsVerticalIcon size={15} />
-                    </Link>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
+          {topLevelContainers.list.map((container) => (
+            <ContainerRow key={container.id} {...container} includeEditAction={true} />
+          ))}
         </ul>
       </section>
     </MobileShell>

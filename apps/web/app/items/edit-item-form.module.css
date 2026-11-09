@@ -1,0 +1,62 @@
+.label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 0.2rem;
+    display: block;
+}
+
+.input {
+    width: 100%;
+    min-height: 2.5rem;
+    border-radius: 0.65rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+    outline: none;
+}
+
+.input[type="date"] {
+    color-scheme: light;
+}
+
+.input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    filter: invert(0.4);
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+}
+
+.textarea {
+    width: 100%;
+    min-height: 5rem;
+    border-radius: 0.65rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.875rem;
+    resize: vertical;
+}
+
+.btnPrimary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    border: none;
+    border-radius: 0.65rem;
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    gap: 0.4rem;
+}

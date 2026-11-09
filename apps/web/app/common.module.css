@@ -1,0 +1,8 @@
+.toastOk {
+    background: #dcfce7;
+    color: #15803d;
+    border-radius: 0.65rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}

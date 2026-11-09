@@ -51,3 +51,32 @@ this sharing option is for ease of managing at the same time, transparency among
 
 these groups/folders/items can be searchable within parent group/folder
 
+json sample for item_atttributes
+
+```json
+{
+  "identifiers": {
+    "serial_id": "SN123",
+    "barcode": "0123456789012",
+    "qr_code": "QRCODEVALUE"
+  },
+  "purchase": {
+    "site": "amazon.com",
+    "retailer": "Amazon",
+    "seller": "ABC Traders",
+    "order_id": "ORD-001",
+    "invoice_url": "https://..."
+  },
+  "warranty": {
+    "provider": "BrandCare",
+    "start_date": "2026-01-01",
+    "end_date": "2028-01-01",
+    "terms": "2 year limited",
+    "claim_url": "https://..."
+  },
+  "links": [
+    { "label": "Manual", "url": "https://..." }
+  ],
+  "notes": "Any extra details"
+}
+```

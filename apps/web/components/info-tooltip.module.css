@@ -1,0 +1,75 @@
+.infoTooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.15rem;
+    vertical-align: middle;
+}
+
+.infoButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #64748b;
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.infoGlyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.9rem;
+    height: 0.9rem;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 0.62rem;
+    text-transform: none;
+}
+
+.infoButton:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 1px;
+}
+
+.infoPopup {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    width: max-content;
+    max-width: min(14rem, calc(100vw - 2rem));
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.3rem;
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.3;
+    text-align: left;
+    text-transform: none;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+}
+
+.infoButton:focus-visible+.infoPopup,
+.infoTooltip[data-open="true"] .infoPopup {
+    visibility: visible;
+    opacity: 1;
+}
+
+@media (hover: hover) {
+    .infoTooltip:hover .infoPopup {
+        visibility: visible;
+        opacity: 1;
+    }
+}

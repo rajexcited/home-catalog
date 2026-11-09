@@ -31,7 +31,7 @@ export default async function ContainerSharingPage({ params }: Props) {
     <MobileShell
       title={container.name}
       activeNav="more"
-      backHref={`/containers/${containerId}/details`}
+      backHref={`/containers/${containerId}`}
       headerActions={
         <button
           className={styles.btnSecondary}

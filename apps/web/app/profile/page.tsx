@@ -61,14 +61,14 @@ export default async function ProfilePage() {
             </Link>
           </li>
           <li>
-            <Link href="/types/containers" className={styles.menuItem}>
+            <Link href="/containers/types" className={styles.menuItem}>
               <MapPinIcon size={18} className={styles.menuIcon} />
-              Container Types &amp; Locations
+              Container Types
               <ChevronRightIcon size={16} className={styles.menuChevron} />
             </Link>
           </li>
           <li>
-            <Link href="/types/items" className={styles.menuItem}>
+            <Link href="/items/categories" className={styles.menuItem}>
               <GridIcon size={18} className={styles.menuIcon} />
               Item Categories
               <ChevronRightIcon size={16} className={styles.menuChevron} />
